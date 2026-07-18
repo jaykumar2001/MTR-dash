@@ -1,0 +1,11 @@
+.worktrees/
+.claude/settings.local.json
+.mcp.json
+node_modules/
+dist/
+backend/data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+.DS_Store
+*.tsbuildinfo

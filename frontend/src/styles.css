@@ -1,0 +1,1044 @@
+/* ==========================================================================
+   MTR Dashboard — "Patch Panel" design system
+   Grounded in the physical object mtr actually traces: rack equipment,
+   keystone jacks, cable runs, and the red/amber/green port LEDs that
+   real network gear already uses for link status.
+   ========================================================================== */
+
+:root {
+  /* Chassis */
+  --bg: #1c1b18;
+  --surface: #26241f;
+  --surface-raised: #302d26;
+  --surface-inset: #17160f;
+  --border: #454038;
+  --border-strong: #5c5648;
+
+  /* Silkscreen text */
+  --text: #ede7da;
+  --text-muted: #9c9484;
+  --text-faint: #948c7c;
+
+  /* Signature accent — patch-cable orange. Used only for selection/focus/CTA,
+     never for data readings (those get the LED colors below). */
+  --accent: #e8622c;
+  --accent-strong: #ff7a3d;
+  --on-accent: #1c1204;
+
+  /* Port LED status colors (real equipment convention) */
+  --status-good: #5fa777;
+  --status-good-dim: #3c6e4d;
+  --status-warn: #d99a3d;
+  --status-warn-dim: #8f6626;
+  --status-bad: #c24c3d;
+  --status-bad-dim: #7d3128;
+
+  /* Type */
+  --font-display: 'IBM Plex Sans Condensed', 'Arial Narrow', sans-serif;
+  --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Menlo, monospace;
+
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --shadow-panel: 0 1px 0 rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme='dark-slate'] {
+  --bg: #15191c;
+  --surface: #1d2226;
+  --surface-raised: #262c31;
+  --surface-inset: #0f1214;
+  --border: #3a4147;
+  --border-strong: #4d565d;
+  --text: #e4e9ec;
+  --text-muted: #93a0a8;
+  --text-faint: #7c8a92;
+  --accent: #2fb8c9;
+  --accent-strong: #4fd3e3;
+  --on-accent: #04191c;
+}
+
+:root[data-theme='light-paper'] {
+  --bg: #f5f1e8;
+  --surface: #ffffff;
+  --surface-raised: #fbf8f1;
+  --surface-inset: #ece6d8;
+  --border: #d8d0bd;
+  --border-strong: #c2b89f;
+  --text: #2a2620;
+  --text-muted: #6b6455;
+  --text-faint: #89826f;
+  --accent: #d1531f;
+  --accent-strong: #b8461a;
+  --on-accent: #fff8f0;
+}
+
+:root[data-theme='light-slate'] {
+  --bg: #eef2f4;
+  --surface: #ffffff;
+  --surface-raised: #f7fafb;
+  --surface-inset: #e2e8eb;
+  --border: #cdd6da;
+  --border-strong: #b3bfc5;
+  --text: #1e2528;
+  --text-muted: #5c686e;
+  --text-faint: #7c8a92;
+  --accent: #0f7f8f;
+  --accent-strong: #0c6874;
+  --on-accent: #f0fbfd;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --motion-fast: 140ms;
+    --motion-med: 320ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-med: 0ms;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ==========================================================================
+   Shell
+   ========================================================================== */
+
+.app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'header header'
+    'sidebar main';
+  height: 100vh;
+  background: var(--bg);
+}
+
+.app-header {
+  grid-area: header;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
+  z-index: 1;
+}
+
+.app-header .brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.app-header .brand::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 0.6rem;
+  border-radius: 50%;
+  background: var(--status-good);
+  box-shadow: 0 0 6px 1px var(--status-good);
+  vertical-align: middle;
+}
+
+.app-header .brand-sub {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+.theme-switcher {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.theme-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  cursor: pointer;
+  padding: 0;
+  transition:
+    border-color var(--motion-fast) ease,
+    transform var(--motion-fast) ease;
+}
+
+.theme-swatch:hover {
+  transform: scale(1.15);
+}
+
+.theme-swatch.active {
+  border-color: var(--text);
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 3px var(--text);
+}
+
+/* ==========================================================================
+   Sidebar — the "port strip"
+   ========================================================================== */
+
+.sidebar {
+  grid-area: sidebar;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 0.9rem 0.9rem 1.25rem;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.1rem 0.1rem 0.6rem;
+  background: var(--surface-inset);
+  transition:
+    border-color var(--motion-fast) ease,
+    background var(--motion-fast) ease;
+}
+
+.sidebar li::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-good);
+  flex-shrink: 0;
+  box-shadow: 0 0 4px 0 var(--status-good);
+}
+
+.sidebar li.selected {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+}
+
+.sidebar li button:first-child {
+  flex: 1;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.25rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.sidebar li.selected button:first-child {
+  color: var(--accent-strong);
+  font-weight: 500;
+}
+
+.sidebar li button[aria-label^='delete-'] {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.sidebar li button[aria-label^='delete-']:hover {
+  color: var(--status-bad);
+  background: rgba(194, 76, 61, 0.12);
+}
+
+/* ==========================================================================
+   Target form — small equipment-label field group
+   ========================================================================== */
+
+.target-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+}
+
+.target-form input,
+.target-form select {
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.target-form input::placeholder {
+  color: var(--text-faint);
+}
+
+.target-form input:focus-visible,
+.target-form select:focus-visible {
+  border-color: var(--accent);
+}
+
+/* The dropdown list itself can't take the page palette on every platform,
+   but the closed control can — and option text must stay readable against
+   the UA's own list background in both light and dark themes. */
+.target-form select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.target-form button[type='submit'] {
+  margin-top: 0.15rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--motion-fast) ease;
+}
+
+.target-form button[type='submit']:hover {
+  background: var(--accent-strong);
+}
+
+/* ==========================================================================
+   Main / canvas column
+   ========================================================================== */
+
+main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bottom-panels {
+  display: flex;
+  flex-shrink: 0;
+  height: 220px;
+}
+
+/* ==========================================================================
+   Config panel — DIP-switch style inline settings
+   ========================================================================== */
+
+.config-panel {
+  display: flex;
+  gap: 1.4rem;
+  align-items: flex-end;
+  padding: 0.7rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.config-panel label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.config-panel input,
+.config-panel select {
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  width: 6.5rem;
+}
+
+.config-panel input:focus-visible,
+.config-panel select:focus-visible {
+  border-color: var(--accent);
+}
+
+/* The dropdown list itself can't take the page palette on every platform,
+   but the closed control can — and option text must stay readable against
+   the UA's own list background in both light and dark themes. */
+.config-panel select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.config-panel button[type='submit'] {
+  background: transparent;
+  color: var(--status-good);
+  border: 1px solid var(--status-good-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.9rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--motion-fast) ease,
+    color var(--motion-fast) ease;
+}
+
+.config-panel button[type='submit']:hover {
+  background: var(--status-good);
+  color: var(--on-accent);
+}
+
+/* ==========================================================================
+   History banner
+   ========================================================================== */
+
+.history-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 1.25rem;
+  background: var(--status-warn-dim);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text);
+}
+
+.history-banner::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-warn);
+  box-shadow: 0 0 5px 0 var(--status-warn);
+  flex-shrink: 0;
+}
+
+.history-banner button {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.history-banner button:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+/* ==========================================================================
+   Network map canvas
+   ========================================================================== */
+
+.network-map {
+  flex: 1;
+  position: relative;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.network-map .react-flow {
+  background: var(--bg);
+}
+
+.network-map .react-flow__attribution {
+  background: transparent;
+  color: var(--text-faint);
+}
+
+.network-map .react-flow__controls {
+  box-shadow: var(--shadow-panel);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.network-map .react-flow__controls-button {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  fill: var(--text-muted);
+}
+
+.network-map .react-flow__controls-button:hover {
+  background: var(--surface-raised);
+}
+
+/* ==========================================================================
+   Hop node — keystone jack module (the signature element)
+   ========================================================================== */
+
+@keyframes jack-power-on {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.hop-node {
+  position: relative;
+  width: 170px;
+  padding: 0.6rem 0.75rem 0.55rem;
+  background: linear-gradient(180deg, var(--surface-raised), var(--surface));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  text-align: left;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    var(--shadow-panel);
+  animation: jack-power-on var(--motion-med) ease both;
+  cursor: pointer;
+}
+
+.hop-node:hover {
+  border-color: var(--accent);
+}
+
+/* Screw-dot detail, top-left, like a real keystone module */
+.hop-node::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--surface-inset);
+  box-shadow:
+    0 0 0 1px var(--border-strong),
+    1px 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.hop-node.inactive {
+  opacity: 0.5;
+  border-style: dashed;
+  background: linear-gradient(180deg, var(--surface), var(--surface-inset));
+}
+
+.hop-node.inferred {
+  border-color: var(--status-warn);
+}
+
+.hop-node.origin {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent) inset,
+    var(--shadow-panel);
+}
+
+.hop-node.origin .hop-node-ttl {
+  color: var(--accent-strong);
+}
+
+.hop-node-ttl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 0.15rem;
+}
+
+.hop-node-flag {
+  display: inline-flex;
+  align-items: center;
+  width: 16px;
+  height: 12px;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--border-strong);
+  flex-shrink: 0;
+}
+
+.hop-node-flag svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hop-node-host {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.hop-node.inactive .hop-node-host {
+  color: var(--text-muted);
+}
+
+.hop-node-hostname {
+  margin-top: 0.2rem;
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hop-node.inactive .hop-node-hostname {
+  color: var(--text-faint);
+}
+
+.hop-node-netname {
+  margin-top: 0.2rem;
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hop-node.inactive .hop-node-netname {
+  color: var(--text-faint);
+}
+
+.network-map .react-flow__handle {
+  width: 6px;
+  height: 6px;
+  background: var(--border-strong);
+  border: none;
+}
+
+/* ==========================================================================
+   Edges — cable runs
+   ========================================================================== */
+
+.network-map .react-flow__edge-path {
+  transition: stroke var(--motion-med) ease;
+}
+
+.network-map .react-flow__edge {
+  cursor: pointer;
+}
+
+/* Hover/selected glow — announces a cable run is interactive before it's
+   clicked. `color` is set inline per-edge (MetricEdge.tsx) so `currentColor`
+   always matches that edge's own loss-status color. */
+.network-map .react-flow__edge:hover .react-flow__edge-path,
+.network-map .react-flow__edge.selected .react-flow__edge-path {
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+/* Metrics table — revealed on clicking a cable run. Positioned via inline
+   left/top (viewport coordinates from the click event), so `position: fixed`
+   here tracks the cursor regardless of map pan/zoom or page scroll. */
+.edge-metrics-table {
+  position: fixed;
+  z-index: 20;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text);
+  box-shadow: var(--shadow-panel);
+  pointer-events: auto;
+  animation: jack-power-on var(--motion-fast) ease both;
+}
+
+.edge-metrics-table th,
+.edge-metrics-table td {
+  padding: 0.24rem 0.6rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.edge-metrics-table th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border-right: 1px solid var(--border);
+}
+
+.edge-metrics-table td {
+  color: var(--text);
+}
+
+.edge-metrics-table tr:not(:last-child) th,
+.edge-metrics-table tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Copy-on-click affordance — used for hop-node hostnames and IP-looking
+   whois field values. */
+.copyable {
+  cursor: pointer;
+}
+
+.copyable:hover {
+  color: var(--accent-strong);
+}
+
+.copyable.copied {
+  color: var(--status-good);
+}
+
+/* Whois popup — revealed on clicking a hop node. Shares the same "hovering
+   table with a border, positioned at the cursor" chrome as .edge-metrics-table
+   above, extended with a header and a scrollable body, since whois output
+   length varies a lot by registrar and must never overflow the viewport. */
+.node-whois-table {
+  position: fixed;
+  z-index: 20;
+  width: 280px;
+  max-height: 320px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  pointer-events: auto;
+  animation: jack-power-on var(--motion-fast) ease both;
+  overflow: hidden;
+}
+
+.node-whois-header {
+  flex-shrink: 0;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-raised);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--accent-strong);
+}
+
+.node-whois-body {
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.node-whois-status {
+  padding: 0.6rem 0.65rem;
+  color: var(--text-muted);
+}
+
+.node-whois-status.error {
+  color: var(--status-bad);
+}
+
+.node-whois-body table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.node-whois-body th,
+.node-whois-body td {
+  padding: 0.22rem 0.65rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.node-whois-body th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+  width: 40%;
+}
+
+.node-whois-body td {
+  color: var(--text);
+  word-break: break-word;
+}
+
+.node-whois-body tr:not(:last-child) th,
+.node-whois-body tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+
+/* ==========================================================================
+   Legend — LED key
+   ========================================================================== */
+
+.legend {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.9rem;
+  display: flex;
+  gap: 1rem;
+  padding: 0.45rem 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  box-shadow: var(--shadow-panel);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot.green {
+  background: var(--status-good);
+  box-shadow: 0 0 4px 0 var(--status-good);
+}
+.dot.yellow {
+  background: var(--status-warn);
+  box-shadow: 0 0 4px 0 var(--status-warn);
+}
+.dot.red {
+  background: var(--status-bad);
+  box-shadow: 0 0 4px 0 var(--status-bad);
+}
+
+/* ==========================================================================
+   Raw MTR values panel — the live per-poll log
+   ========================================================================== */
+
+.raw-mtr-panel {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  padding: 0.5rem 1rem 0.7rem;
+  overflow-y: auto;
+  min-width: 0;
+  flex: 1;
+}
+
+.raw-mtr-panel h3 {
+  margin: 0.2rem 0 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.raw-mtr-run {
+  margin-bottom: 0.75rem;
+}
+
+.raw-mtr-run-header {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+.raw-mtr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.raw-mtr-table th,
+.raw-mtr-table td {
+  padding: 0.15rem 0.4rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.raw-mtr-table th {
+  color: var(--text-faint);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.6rem;
+}
+
+/* ==========================================================================
+   Deviation timeline — the cable log
+   ========================================================================== */
+
+.deviation-timeline {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem 0.7rem;
+  overflow-y: auto;
+  min-width: 0;
+  flex: 1;
+}
+
+.deviation-timeline h3 {
+  margin: 0.2rem 0 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.deviation-timeline ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.deviation-timeline li button {
+  width: 100%;
+  text-align: left;
+  background: var(--surface-inset);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color var(--motion-fast) ease;
+}
+
+.deviation-timeline li button:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+
+@media (max-width: 760px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'header'
+      'sidebar'
+      'main';
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    max-height: 220px;
+  }
+
+  .bottom-panels {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .raw-mtr-panel,
+  .deviation-timeline {
+    max-height: 200px;
+  }
+
+  .config-panel {
+    flex-wrap: wrap;
+  }
+
+  .legend {
+    position: static;
+    margin: 0.75rem;
+    align-self: flex-start;
+  }
+}

@@ -1,0 +1,18 @@
+services:
+  mtr-dash:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - mtr-data:/data
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    restart: unless-stopped
+
+volumes:
+  mtr-data:
+
+networks:
+  default:
+    enable_ipv6: true
