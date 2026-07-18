@@ -8,6 +8,8 @@ change ("deviation") over time — not just the current snapshot.
 ![status](https://img.shields.io/badge/status-self--hosted-informational)
 ![license](https://img.shields.io/badge/license-GPL--3.0-blue)
 
+<img width="1511" height="733" alt="image" src="https://github.com/user-attachments/assets/1972e65f-f390-4373-b280-3cf4f6fe9457" />
+
 ## Features
 
 ### Live network path map
