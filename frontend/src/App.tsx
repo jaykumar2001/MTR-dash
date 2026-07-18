@@ -55,7 +55,10 @@ export function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <span className="brand">MTR Dashboard</span>
+        <span className="brand">
+          <img className="brand-logo" src="/logo.svg" alt="" />
+          MTR Dashboard
+        </span>
         <span className="brand-sub">
           {selectedTarget ? `probing ${selectedTarget.host}` : 'no target selected'}
         </span>

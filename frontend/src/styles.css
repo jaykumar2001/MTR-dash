@@ -169,16 +169,11 @@ select {
   color: var(--text);
 }
 
-.app-header .brand::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
+.app-header .brand-logo {
+  width: 22px;
+  height: 22px;
   margin-right: 0.6rem;
-  border-radius: 50%;
-  background: var(--status-good);
-  box-shadow: 0 0 6px 1px var(--status-good);
-  vertical-align: middle;
+  vertical-align: -0.35em;
 }
 
 .app-header .brand-sub {
