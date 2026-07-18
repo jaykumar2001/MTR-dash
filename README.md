@@ -6,6 +6,7 @@ path as a live, draggable network map, and records both the full metric history 
 change ("deviation") over time — not just the current snapshot.
 
 ![status](https://img.shields.io/badge/status-self--hosted-informational)
+![license](https://img.shields.io/badge/license-GPL--3.0-blue)
 
 ## Features
 
@@ -18,7 +19,9 @@ change ("deviation") over time — not just the current snapshot.
   whether the overlap came from the backend's layout or from freely dragging nodes around.
 - **Drag nodes anywhere** — positions are persisted per target, so your layout survives a reload.
 - **Fit-to-screen** automatically frames every node on load and whenever new hops appear, so a
-  long path never spills off-screen; you can still pan/zoom manually at any time.
+  long path never spills off-screen — until you pan or zoom yourself. A manually chosen viewport
+  is persisted in the browser per target and survives data refreshes, target switches, and
+  reloads; auto-fit never overrides it.
 - **Live updates over Server-Sent Events** — the map, deviation timeline, and metrics update the
   moment a new `mtr` run completes, with no page refresh required.
 
@@ -76,6 +79,8 @@ change ("deviation") over time — not just the current snapshot.
 
 ### Web-based configuration
 - Add, edit, and remove destinations (IP or hostname) entirely from the browser — no config files.
+- Each target's **address family** (Auto / IPv4 / IPv6) is chosen when adding it — validated
+  against the host, so an IPv4 literal can't be created as an IPv6 target and vice versa.
 - Each target has its own independent polling **interval** and `mtr` **report-cycles** count,
   editable at any time and applied on the next scheduled run.
 
@@ -278,7 +283,7 @@ All endpoints are under `/api`. Targets are identified by their numeric `id`.
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/targets` | List configured targets |
-| `POST` | `/targets` | Create a target (`host`, optional `intervalSeconds`, `reportCycles`) |
+| `POST` | `/targets` | Create a target (`host`, optional `intervalSeconds`, `reportCycles`, `addressFamily`) |
 | `PATCH` | `/targets/:id` | Update a target's config or enabled state |
 | `DELETE` | `/targets/:id` | Remove a target |
 | `GET` | `/targets/:id/map` | Current path as nodes + edges, with rolling loss-color |
@@ -304,8 +309,8 @@ cd frontend && npm install && npm run dev   # Vite dev server, proxies /api to :
 Run tests:
 
 ```bash
-cd backend && npm test     # 153 tests — services, routes, geoip, whois, dns, scheduler
-cd frontend && npm test    # 96 tests — components, hooks, API client
+cd backend && npm test     # 196 tests — services, routes, geoip, whois, dns, scheduler
+cd frontend && npm test    # 105 tests — components, hooks, API client
 ```
 
 ## Scope
@@ -313,3 +318,9 @@ cd frontend && npm test    # 96 tests — components, hooks, API client
 This is built for a self-hosted, LAN-trusted environment: there's no authentication and no
 per-user access control. It's meant to sit behind your own network boundary, not be exposed
 directly to the internet.
+
+## License
+
+[GPL-3.0-or-later](LICENSE). This project is free software: you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later version.

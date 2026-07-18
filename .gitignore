@@ -1,6 +1,7 @@
 .worktrees/
 .claude/settings.local.json
 .mcp.json
+.env
 node_modules/
 dist/
 backend/data/
