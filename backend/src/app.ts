@@ -12,6 +12,7 @@ import { DnsService } from './services/dns.js';
 import { GeoipService } from './services/geoip.js';
 import { loadGeoipData } from './geoip/loader.js';
 import { ensureMaxmindData } from './geoip/ensureMaxmindData.js';
+import { MAXMIND_CITY_FILENAME } from './geoip/maxmind.js';
 import { SseHub } from './sse/hub.js';
 import { Scheduler } from './scheduler/scheduler.js';
 import { registerTargetRoutes } from './routes/targets.js';
@@ -39,7 +40,7 @@ export function createApp(options: CreateAppOptions = {}) {
   const maxmindDbDir =
     process.env.MAXMIND_DB_DIR ??
     path.join(path.dirname(process.env.DB_PATH ?? './data/mtr-dash.sqlite3'), 'maxmind');
-  const maxmindDbPath = path.join(maxmindDbDir, 'GeoLite2-City.mmdb');
+  const maxmindDbPath = path.join(maxmindDbDir, MAXMIND_CITY_FILENAME);
 
   const targetsService = new TargetsService(db);
   const runsService = new RunsService(db);

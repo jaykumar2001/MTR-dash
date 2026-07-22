@@ -13,7 +13,9 @@ describe('GeoipService', () => {
   describe('getSummary', () => {
     it('resolves the host to an IP and returns the geo result', async () => {
       const resolveHostFn = vi.fn().mockResolvedValue('8.8.8.8');
-      const resolveGeoFn = vi.fn().mockResolvedValue({ country: 'US', city: 'Mountain View' });
+      const resolveGeoFn = vi
+        .fn()
+        .mockResolvedValue({ country: 'US', city: 'Mountain View', source: 'maxmind' });
       const service = new GeoipService(db, { resolveHostFn, resolveGeoFn });
 
       const summary = await service.getSummary('dns.google');
@@ -36,7 +38,9 @@ describe('GeoipService', () => {
 
     it('serves a fresh cached summary without calling resolveHost or resolveGeo again', async () => {
       const resolveHostFn = vi.fn().mockResolvedValue('8.8.8.8');
-      const resolveGeoFn = vi.fn().mockResolvedValue({ country: 'US', city: 'Mountain View' });
+      const resolveGeoFn = vi
+        .fn()
+        .mockResolvedValue({ country: 'US', city: 'Mountain View', source: 'maxmind' });
       const service = new GeoipService(db, { resolveHostFn, resolveGeoFn });
 
       await service.getSummary('dns.google');
@@ -48,7 +52,9 @@ describe('GeoipService', () => {
 
     it('re-fetches when the cached row is older than the 30-day TTL', async () => {
       const resolveHostFn = vi.fn().mockResolvedValue('8.8.8.8');
-      const resolveGeoFn = vi.fn().mockResolvedValue({ country: 'US', city: 'Mountain View' });
+      const resolveGeoFn = vi
+        .fn()
+        .mockResolvedValue({ country: 'US', city: 'Mountain View', source: 'maxmind' });
       const service = new GeoipService(db, { resolveHostFn, resolveGeoFn });
       await service.getSummary('dns.google');
 
@@ -59,6 +65,40 @@ describe('GeoipService', () => {
 
       await service.getSummary('dns.google');
       expect(resolveGeoFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('re-fetches a fallback-sourced row after its short TTL, even though it is under 30 days old', async () => {
+      const resolveHostFn = vi.fn().mockResolvedValue('8.8.8.8');
+      const resolveGeoFn = vi
+        .fn()
+        .mockResolvedValue({ country: 'DE', city: null, source: 'fallback' });
+      const service = new GeoipService(db, { resolveHostFn, resolveGeoFn });
+      await service.getSummary('dns.google');
+
+      db.prepare('UPDATE geoip_cache SET fetched_at = ? WHERE host = ?').run(
+        new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        'dns.google',
+      );
+
+      await service.getSummary('dns.google');
+      expect(resolveGeoFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps a maxmind-sourced row cached well past the fallback TTL, until the 30-day TTL', async () => {
+      const resolveHostFn = vi.fn().mockResolvedValue('8.8.8.8');
+      const resolveGeoFn = vi
+        .fn()
+        .mockResolvedValue({ country: 'US', city: 'Mountain View', source: 'maxmind' });
+      const service = new GeoipService(db, { resolveHostFn, resolveGeoFn });
+      await service.getSummary('dns.google');
+
+      db.prepare('UPDATE geoip_cache SET fetched_at = ? WHERE host = ?').run(
+        new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        'dns.google',
+      );
+
+      await service.getSummary('dns.google');
+      expect(resolveGeoFn).toHaveBeenCalledTimes(1);
     });
   });
 });

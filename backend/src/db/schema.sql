@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS geoip_cache (
   host TEXT PRIMARY KEY,
   country TEXT,
   city TEXT,
+  source TEXT,
   fetched_at TEXT NOT NULL
 );
 

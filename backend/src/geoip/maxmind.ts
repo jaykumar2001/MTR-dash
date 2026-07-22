@@ -1,6 +1,12 @@
 import fs from 'node:fs';
 import { open, type Reader, type CityResponse } from 'maxmind';
 
+/** The GeoLite2-City filename `geoipupdate` writes and this module reads —
+ * shared so app.ts (constructing the path GeoipService reads from) and
+ * ensureMaxmindData.ts (constructing the path geoipupdate writes to and
+ * checks the mtime of) can never drift apart on the filename. */
+export const MAXMIND_CITY_FILENAME = 'GeoLite2-City.mmdb';
+
 export interface GeoLookupResult {
   country: string | null;
   city: string | null;

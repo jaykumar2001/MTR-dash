@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { MAXMIND_CITY_FILENAME } from './maxmind.js';
 
 const execFileAsync = promisify(execFile);
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -31,7 +32,7 @@ export async function ensureMaxmindData(
 
   const execFileFn = options.execFileFn ?? execFileAsync;
   const statFn = options.statFn ?? fs.promises.stat;
-  const dbPath = path.join(dbDir, 'GeoLite2-City.mmdb');
+  const dbPath = path.join(dbDir, MAXMIND_CITY_FILENAME);
 
   try {
     const stat = await statFn(dbPath);

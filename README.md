@@ -14,8 +14,8 @@ change ("deviation") over time — not just the current snapshot.
 
 ### Live network path map
 - Each hop renders as a soft-cornered node ("keystone jack") showing its host/IP, TTL, and
-  (once resolved) its **NETNAME** and a **country flag** — all laid out left-to-right along
-  bezier "cable run" edges from your host to the destination.
+  (once resolved) its **NETNAME**, a **country flag**, and **city** — all laid out left-to-right
+  along bezier "cable run" edges from your host to the destination.
 - **Nodes never overlap.** A minimum-translation-vector collision-separation pass pushes any
   colliding pair apart the minimum distance needed, on top of a fixed node footprint — holds up
   whether the overlap came from the backend's layout or from freely dragging nodes around.
@@ -282,6 +282,11 @@ for the common case — override via `docker-compose.yml` if needed):
 | `GEOIP_DATA_DIR` | `/app/geoip` | Where the baked ipdeny GeoIP JSON data (fallback) lives |
 | `GEOIP_CONF_PATH` | *(unset)* | Path to a MaxMind `geoipupdate` config file (see `.GeoIP.conf.example` conventions at [dev.maxmind.com](https://dev.maxmind.com/geoip/updating-databases)); unset disables MaxMind entirely, falling back to ipdeny only |
 | `MAXMIND_DB_DIR` | `<dir of DB_PATH>/maxmind` | Where the downloaded MaxMind `.mmdb` files live |
+
+If you enable MaxMind, `docker-compose.yml` bind-mounts `./.GeoIP.conf` into the container — make
+sure that file exists locally before running `docker compose up`. Docker's behavior for a missing
+bind-mount source file varies by version (some create an empty directory at the mount point rather
+than erroring), so an absent file can fail in a confusing way rather than a clear one.
 
 Per-target polling interval, `mtr` report-cycles, and max stale hops (0–5, default 1 — how many
 superseded hosts to keep showing per path position) are configured from the web UI, not env vars.

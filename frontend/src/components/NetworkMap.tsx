@@ -287,9 +287,10 @@ export function NetworkMap({ targetId, mapData, historyActive }: NetworkMapProps
     // which layers netname/country on afterward without touching this.
   }, [mapData.nodes, avgLatencyMsByTtl, historyActive, isHistoricallyActive]);
 
-  // Adds netname/country on top of initialNodes for rendering only, once
-  // whois summaries arrive. Kept separate from initialNodes (see above) so
-  // this never feeds nodeActiveById/initialEdges/FitViewOnChange.
+  // Adds netname (from whois) and country/city (from geoip) on top of
+  // initialNodes for rendering only, once their respective bulk summaries
+  // arrive. Kept separate from initialNodes (see above) so this never
+  // feeds nodeActiveById/initialEdges/FitViewOnChange.
   const displayNodes = useMemo<Node[]>(
     () =>
       initialNodes.map((node) => {
