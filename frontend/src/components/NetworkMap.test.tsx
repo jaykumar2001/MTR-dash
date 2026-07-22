@@ -10,6 +10,7 @@ vi.mock('../api/client.js', () => ({
     getWhois: vi.fn(),
     getWhoisBulk: vi.fn().mockResolvedValue({}),
     getDnsBulk: vi.fn().mockResolvedValue({}),
+    getGeoipBulk: vi.fn().mockResolvedValue({}),
   },
 }));
 
@@ -331,14 +332,28 @@ describe('NetworkMap', () => {
     expect(api.getWhoisBulk).toHaveBeenCalledWith(['192.168.1.1']);
   });
 
-  it('renders netname and a country flag inline once the bulk summary resolves', async () => {
+  it('renders the netname once the whois bulk summary resolves', async () => {
     vi.mocked(api.getWhoisBulk).mockResolvedValue({
-      '192.168.1.1': { netname: 'EXAMPLE-NET', country: 'US' },
+      '192.168.1.1': { netname: 'EXAMPLE-NET' },
+    });
+    render(<NetworkMap targetId={1} mapData={mapData} />);
+
+    await screen.findByText('EXAMPLE-NET');
+  });
+
+  it('renders a country flag and city once the geoip bulk summary resolves', async () => {
+    vi.mocked(api.getGeoipBulk).mockResolvedValue({
+      '192.168.1.1': { country: 'US', city: 'Mountain View' },
     });
     const { container } = render(<NetworkMap targetId={1} mapData={mapData} />);
 
-    await screen.findByText('EXAMPLE-NET');
+    await screen.findByText('Mountain View, US');
     expect(container.querySelector('.hop-node-flag')).not.toBeNull();
+  });
+
+  it('lazily bulk-loads geoip summaries for every hop host on mount, without any click', () => {
+    render(<NetworkMap targetId={1} mapData={mapData} />);
+    expect(api.getGeoipBulk).toHaveBeenCalledWith(['192.168.1.1']);
   });
 
   it('does not request the same host again when re-rendered with unchanged hosts', () => {
