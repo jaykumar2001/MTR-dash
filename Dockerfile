@@ -37,7 +37,7 @@ RUN node scripts/build-geoip-data.mjs /app/backend/geoip-data
 # ---- Stage 4: runtime ----
 FROM node:20-bookworm-slim AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libjansson4 libcap2 ca-certificates \
+      libjansson4 libcap2 ca-certificates geoipupdate \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=mtr-builder /opt/mtr-install/usr/local /usr/local
 # mtr's `make install` places binaries in /usr/local/sbin; symlink into
