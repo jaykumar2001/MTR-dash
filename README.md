@@ -71,8 +71,10 @@ change ("deviation") over time — not just the current snapshot.
 - **NETNAME** (from WHOIS, IP *ownership*) and a **country flag + city** (from GeoIP, IP
   *location*) are loaded lazily and shown right on the node for every hop on the map — no click
   required, and nothing blocks the initial render. These are deliberately separate lookups with
-  separate SQLite caches (`whois_cache`, `geoip_cache`, both 30-day TTL) — WHOIS ownership data
-  and GeoIP location data are different concerns and are never correlated.
+  separate SQLite caches (`whois_cache`, 30-day TTL; `geoip_cache`, 30-day TTL for a MaxMind hit
+  but 1h for a fallback/no-data result, so a cold-start ipdeny fallback self-heals quickly once
+  MaxMind data is available) — WHOIS ownership data and GeoIP location data are different
+  concerns and are never correlated.
 - **GeoIP location** tries a MaxMind GeoLite2-City database first (country + city), falling back
   to an offline ipdeny.com IPv4/IPv6 CIDR-range table (country only) whenever MaxMind has no
   usable record — including when it isn't configured at all, which is the default. See
@@ -325,7 +327,7 @@ cd frontend && npm install && npm run dev   # Vite dev server, proxies /api to :
 Run tests:
 
 ```bash
-cd backend && npm test     # 227 tests — services, routes, geoip, whois, dns, scheduler
+cd backend && npm test     # 229 tests — services, routes, geoip, whois, dns, scheduler
 cd frontend && npm test    # 111 tests — components, hooks, API client
 ```
 
