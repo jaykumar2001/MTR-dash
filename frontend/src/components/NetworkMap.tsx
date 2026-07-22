@@ -21,7 +21,7 @@ import { api } from '../api/client.js';
 import { separateBoxes } from '../lib/separation.js';
 import { computeAutoLayout } from '../lib/layout.js';
 import { loadViewport, saveViewport } from '../lib/viewport.js';
-import type { MapResult, WhoisResult, WhoisSummary } from '../types.js';
+import type { MapResult, WhoisResult, WhoisSummary, GeoipSummary } from '../types.js';
 
 const nodeTypes = { hopNode: HopNode };
 const edgeTypes = { metricEdge: MetricEdge };
@@ -198,6 +198,25 @@ export function NetworkMap({ targetId, mapData, historyActive }: NetworkMapProps
       });
   }, [uniqueHosts]);
 
+  // Lazily loads country+city for every hop currently on the map — same
+  // fetch-once-per-host strategy as whoisSummaries/dnsHostnames above, but
+  // a fully separate data source and cache (GeoIP location vs. WHOIS
+  // ownership are deliberately not correlated; see backend/src/services/geoip.ts).
+  const [geoipSummaries, setGeoipSummaries] = useState<Record<string, GeoipSummary>>({});
+  const requestedGeoipHostsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    const newHosts = uniqueHosts.filter((host) => !requestedGeoipHostsRef.current.has(host));
+    if (newHosts.length === 0) return;
+    newHosts.forEach((host) => requestedGeoipHostsRef.current.add(host));
+    api
+      .getGeoipBulk(newHosts)
+      .then((summaries) => setGeoipSummaries((prev) => ({ ...prev, ...summaries })))
+      .catch(() => {
+        newHosts.forEach((host) => requestedGeoipHostsRef.current.delete(host));
+      });
+  }, [uniqueHosts]);
+
   // Built from the live (non-stale) edges only — a stale connector edge's
   // `latest` metrics describe a historical poll, not "how far this ttl
   // currently is," so it's not a meaningful input to today's default layout.
@@ -268,25 +287,28 @@ export function NetworkMap({ targetId, mapData, historyActive }: NetworkMapProps
     // which layers netname/country on afterward without touching this.
   }, [mapData.nodes, avgLatencyMsByTtl, historyActive, isHistoricallyActive]);
 
-  // Adds netname/country on top of initialNodes for rendering only, once
-  // whois summaries arrive. Kept separate from initialNodes (see above) so
-  // this never feeds nodeActiveById/initialEdges/FitViewOnChange.
+  // Adds netname (from whois) and country/city (from geoip) on top of
+  // initialNodes for rendering only, once their respective bulk summaries
+  // arrive. Kept separate from initialNodes (see above) so this never
+  // feeds nodeActiveById/initialEdges/FitViewOnChange.
   const displayNodes = useMemo<Node[]>(
     () =>
       initialNodes.map((node) => {
         const host = (node.data as { host: string }).host;
         const summary = whoisSummaries[host];
+        const geo = geoipSummaries[host];
         return {
           ...node,
           data: {
             ...node.data,
             netname: summary?.netname ?? null,
-            country: summary?.country ?? null,
+            country: geo?.country ?? null,
+            city: geo?.city ?? null,
             resolvedHost: dnsHostnames[host] ?? null,
           },
         };
       }),
-    [initialNodes, whoisSummaries, dnsHostnames],
+    [initialNodes, whoisSummaries, geoipSummaries, dnsHostnames],
   );
 
   const nodeActiveById = useMemo(() => {

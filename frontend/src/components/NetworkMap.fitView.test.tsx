@@ -30,6 +30,7 @@ vi.mock('../api/client.js', () => ({
     getWhois: vi.fn(),
     getWhoisBulk: vi.fn().mockResolvedValue({}),
     getDnsBulk: vi.fn().mockResolvedValue({}),
+    getGeoipBulk: vi.fn().mockResolvedValue({}),
   },
 }));
 

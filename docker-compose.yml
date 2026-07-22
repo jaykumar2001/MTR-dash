@@ -5,6 +5,9 @@ services:
       - "3000:3000"
     volumes:
       - mtr-data:/data
+      - ./.GeoIP.conf:/app/GeoIP.conf:ro
+    environment:
+      - GEOIP_CONF_PATH=/app/GeoIP.conf
     cap_add:
       - NET_RAW
       - NET_ADMIN

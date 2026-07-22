@@ -8,6 +8,7 @@ export interface HopNodeData extends Record<string, unknown> {
   active: boolean;
   netname?: string | null;
   country?: string | null;
+  city?: string | null;
   resolvedHost?: string | null;
   inferred?: boolean;
 }
@@ -18,7 +19,8 @@ export interface HopNodeData extends Record<string, unknown> {
 const FlagComponents = Flags as unknown as Record<string, React.ComponentType>;
 
 export function HopNode({ data }: NodeProps) {
-  const { host, ttl, active, netname, country, resolvedHost, inferred } = data as HopNodeData;
+  const { host, ttl, active, netname, country, city, resolvedHost, inferred } =
+    data as HopNodeData;
   const isOrigin = ttl === 0;
   const FlagIcon = country ? FlagComponents[country] : undefined;
 
@@ -40,6 +42,7 @@ export function HopNode({ data }: NodeProps) {
         <Copyable text={host} />
       </div>
       {resolvedHost && <div className="hop-node-hostname">{resolvedHost}</div>}
+      {city && <div className="hop-node-geo">{country ? `${city}, ${country}` : city}</div>}
       {netname && <div className="hop-node-netname">{netname}</div>}
       <Handle type="source" position={Position.Right} />
     </div>

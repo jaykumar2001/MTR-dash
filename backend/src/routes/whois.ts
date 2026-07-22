@@ -40,7 +40,7 @@ export function registerWhoisRoutes(app: Hono, whoisService: WhoisService) {
         try {
           return [host, await whoisService.getSummary(host)];
         } catch {
-          return [host, { netname: null, country: null }];
+          return [host, { netname: null }];
         }
       }),
     );

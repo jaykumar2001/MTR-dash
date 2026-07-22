@@ -94,6 +94,19 @@ CREATE TABLE IF NOT EXISTS dns_cache (
   fetched_at TEXT NOT NULL
 );
 
+-- Cached GeoIP (country + city) summaries, keyed by host. A separate data
+-- source and cache from whois_cache: GeoIP is IP location, WHOIS is IP
+-- ownership — deliberately not merged. 30-day TTL, same reasoning as
+-- whois_cache (location/allocation data changes about as rarely as WHOIS
+-- registrant data).
+CREATE TABLE IF NOT EXISTS geoip_cache (
+  host TEXT PRIMARY KEY,
+  country TEXT,
+  city TEXT,
+  source TEXT,
+  fetched_at TEXT NOT NULL
+);
+
 -- Offline IPv4 CIDR-block-to-country data (baked into the image at build
 -- time from ipdeny.com's country zone files; see Dockerfile's geoip-builder
 -- stage). start_int/end_int are the block's first/last address as a 32-bit

@@ -78,7 +78,11 @@ export interface WhoisResult {
 
 export interface WhoisSummary {
   netname: string | null;
+}
+
+export interface GeoipSummary {
   country: string | null;
+  city: string | null;
 }
 
 export interface RunHistoryHop {

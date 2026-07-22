@@ -6,6 +6,7 @@ import type {
   HistoryResult,
   WhoisResult,
   WhoisSummary,
+  GeoipSummary,
   RunHistoryEntry,
 } from '../types.js';
 
@@ -65,6 +66,11 @@ export const api = {
     }),
   getDnsBulk: (hosts: string[]) =>
     request<Record<string, string | null>>('/dns/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ hosts }),
+    }),
+  getGeoipBulk: (hosts: string[]) =>
+    request<Record<string, GeoipSummary>>('/geoip/bulk', {
       method: 'POST',
       body: JSON.stringify({ hosts }),
     }),
