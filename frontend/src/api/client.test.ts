@@ -55,4 +55,15 @@ describe('api client', () => {
       }),
     );
   });
+
+  it('sends a POST with the host list when requesting bulk geoip summaries', async () => {
+    await api.getGeoipBulk(['1.1.1.1', '8.8.8.8']);
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/geoip/bulk',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ hosts: ['1.1.1.1', '8.8.8.8'] }),
+      }),
+    );
+  });
 });
