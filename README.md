@@ -65,17 +65,20 @@ change ("deviation") over time — not just the current snapshot.
   bar; the choice persists across reloads. Loss-status colors (red/amber/green) keep their meaning
   in every theme — only chassis/text/accent colors change.
 
-### Whois + GeoIP, lazily loaded and cached
+### Whois + GeoIP — two separate data sources, both lazily loaded and cached
 - Click any hop node for a **whois lookup** (via a native WHOIS-protocol client — no OS package or
   external CLI needed), shown as a scrollable table anchored to your cursor.
-- **NETNAME** and a **country flag** are loaded lazily and shown right on the node for every hop
-  on the map — no click required, and nothing blocks the initial render.
-- Whois results are **cached in SQLite** (30-day TTL) — repeat views of the same host are instant.
-- Country lookup is **fully offline at runtime**: IPv4/IPv6 CIDR-to-country data from
-  [ipdeny.com](https://www.ipdeny.com/) is downloaded and baked into the Docker image at *build*
-  time, so there's no dependency on any third-party IP-geolocation API in production.
-- Hops that only report a reverse-DNS hostname (not a raw IP) are forward-resolved before the
-  GeoIP lookup, so flags/countries show up for the common case, not just raw-IP hops.
+- **NETNAME** (from WHOIS, IP *ownership*) and a **country flag + city** (from GeoIP, IP
+  *location*) are loaded lazily and shown right on the node for every hop on the map — no click
+  required, and nothing blocks the initial render. These are deliberately separate lookups with
+  separate SQLite caches (`whois_cache`, `geoip_cache`, both 30-day TTL) — WHOIS ownership data
+  and GeoIP location data are different concerns and are never correlated.
+- **GeoIP location** tries a MaxMind GeoLite2-City database first (country + city), falling back
+  to an offline ipdeny.com IPv4/IPv6 CIDR-range table (country only) whenever MaxMind has no
+  usable record — including when it isn't configured at all, which is the default. See
+  [Configuration](#configuration) for enabling MaxMind.
+- Hops that only report a reverse-DNS hostname (not a raw IP) are forward-resolved before either
+  lookup, so netnames/flags/cities show up for the common case, not just raw-IP hops.
 - Any IP-looking value (a hop's host, or a whois field like `NetRange`) is **click-to-copy**, with
   brief visual feedback.
 
@@ -124,10 +127,13 @@ change ("deviation") over time — not just the current snapshot.
   WHOIS-protocol socket client (no OS binary, no shelling out).
 - **Reverse DNS** — Node's built-in `dns.promises.reverse`, cached in SQLite (24h TTL), used only
   for the display-only resolved-hostname line — never affects a hop's canonical raw-IP identity.
-- **GeoIP** — [ipdeny.com](https://www.ipdeny.com/)'s country CIDR-block lists, downloaded and
-  converted into SQLite range tables at Docker build time; looked up via an indexed
-  "closest start ≤ ip" query for both IPv4 (32-bit int) and IPv6 (128-bit value, stored as a
-  fixed-width hex string for correct ordering).
+- **GeoIP** — [MaxMind GeoLite2-City](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data)
+  (country + city) when configured, via the official `geoipupdate` tool run by the backend itself
+  at startup and on a 24h interval (skipped entirely when the mmdb file is already fresh, or when
+  MaxMind isn't configured). Falls back to [ipdeny.com](https://www.ipdeny.com/)'s country
+  CIDR-block lists (downloaded and converted into SQLite range tables at Docker build time,
+  looked up via an indexed "closest start ≤ ip" query for both IPv4 and IPv6) whenever MaxMind has
+  nothing for an IP. Kept as a fully separate service/cache from WHOIS — see above.
 
 ## Path history and unresolved-hop resolution
 
@@ -273,7 +279,9 @@ for the common case — override via `docker-compose.yml` if needed):
 | `DB_PATH` | `/data/mtr-dash.sqlite3` | SQLite database file location |
 | `MTR_BIN` | `/usr/local/bin/mtr` | Path to the compiled `mtr` binary |
 | `STATIC_DIR` | `/app/public` | Where the built frontend is served from |
-| `GEOIP_DATA_DIR` | `/app/geoip` | Where the baked GeoIP JSON data lives |
+| `GEOIP_DATA_DIR` | `/app/geoip` | Where the baked ipdeny GeoIP JSON data (fallback) lives |
+| `GEOIP_CONF_PATH` | *(unset)* | Path to a MaxMind `geoipupdate` config file (see `.GeoIP.conf.example` conventions at [dev.maxmind.com](https://dev.maxmind.com/geoip/updating-databases)); unset disables MaxMind entirely, falling back to ipdeny only |
+| `MAXMIND_DB_DIR` | `<dir of DB_PATH>/maxmind` | Where the downloaded MaxMind `.mmdb` files live |
 
 Per-target polling interval, `mtr` report-cycles, and max stale hops (0–5, default 1 — how many
 superseded hosts to keep showing per path position) are configured from the web UI, not env vars.
@@ -295,8 +303,9 @@ All endpoints are under `/api`. Targets are identified by their numeric `id`.
 | `PUT` | `/targets/:id/nodes/:nodeId/position` | Persist a dragged node's `x`/`y` |
 | `GET` | `/targets/:id/stream` | Server-Sent Events — pushes each completed run live |
 | `GET` | `/whois/:host` | Full whois record for one host (cached) |
-| `POST` | `/whois/bulk` | `{hosts: string[]}` → `{[host]: {netname, country}}` (cached, batched) |
+| `POST` | `/whois/bulk` | `{hosts: string[]}` → `{[host]: {netname}}` (cached, batched) |
 | `POST` | `/dns/bulk` | `{hosts: string[]}` → `{[ip]: hostname \| null}` (reverse DNS, cached, batched) |
+| `POST` | `/geoip/bulk` | `{hosts: string[]}` → `{[host]: {country, city}}` (MaxMind, ipdeny fallback; cached, batched) |
 | `GET` | `/health` | Health check |
 
 ## Development
@@ -311,8 +320,8 @@ cd frontend && npm install && npm run dev   # Vite dev server, proxies /api to :
 Run tests:
 
 ```bash
-cd backend && npm test     # 196 tests — services, routes, geoip, whois, dns, scheduler
-cd frontend && npm test    # 105 tests — components, hooks, API client
+cd backend && npm test     # 227 tests — services, routes, geoip, whois, dns, scheduler
+cd frontend && npm test    # 111 tests — components, hooks, API client
 ```
 
 ## Scope
