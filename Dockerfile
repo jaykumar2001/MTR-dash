@@ -36,8 +36,16 @@ RUN node scripts/build-geoip-data.mjs /app/backend/geoip-data
 
 # ---- Stage 4: runtime ----
 FROM node:20-bookworm-slim AS runtime
+ARG GEOIPUPDATE_VERSION=8.0.0
+ARG TARGETARCH
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      libjansson4 libcap2 ca-certificates geoipupdate \
+      libjansson4 libcap2 ca-certificates curl \
+    && curl -fsSL -o /tmp/geoipupdate.deb \
+      "https://github.com/maxmind/geoipupdate/releases/download/v${GEOIPUPDATE_VERSION}/geoipupdate_${GEOIPUPDATE_VERSION}_linux_${TARGETARCH}.deb" \
+    && dpkg -i /tmp/geoipupdate.deb \
+    && apt-get purge -y curl \
+    && apt-get autoremove -y \
+    && rm -f /tmp/geoipupdate.deb \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=mtr-builder /opt/mtr-install/usr/local /usr/local
 # mtr's `make install` places binaries in /usr/local/sbin; symlink into
