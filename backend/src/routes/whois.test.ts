@@ -16,7 +16,7 @@ describe('whois routes', () => {
     it('returns whois fields for a valid host', async () => {
       const app = new Hono();
       const runWhoisFn = vi.fn().mockResolvedValue('NetName: TEST\n');
-      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn, resolveHostFn: vi.fn() }));
+      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn }));
 
       const res = await app.request('/api/whois/1.1.1.1');
 
@@ -39,7 +39,7 @@ describe('whois routes', () => {
     it('returns 502 when the whois lookup fails', async () => {
       const app = new Hono();
       const runWhoisFn = vi.fn().mockRejectedValue(new Error('boom'));
-      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn, resolveHostFn: vi.fn() }));
+      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn }));
 
       const res = await app.request('/api/whois/1.1.1.1');
 
@@ -49,12 +49,14 @@ describe('whois routes', () => {
   });
 
   describe('POST /api/whois/bulk', () => {
-    it('returns a netname/country summary per requested host', async () => {
+    it('returns a netname summary per requested host', async () => {
       const app = new Hono();
-      const runWhoisFn = vi.fn().mockImplementation(async (host: string) =>
-        host === '1.1.1.1' ? 'netname: ONE-NET\n' : 'netname: EIGHT-NET\n',
-      );
-      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn, resolveHostFn: vi.fn() }));
+      const runWhoisFn = vi
+        .fn()
+        .mockImplementation(async (host: string) =>
+          host === '1.1.1.1' ? 'netname: ONE-NET\n' : 'netname: EIGHT-NET\n',
+        );
+      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn }));
 
       const res = await app.request('/api/whois/bulk', {
         method: 'POST',
@@ -64,8 +66,8 @@ describe('whois routes', () => {
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({
-        '1.1.1.1': { netname: 'ONE-NET', country: null },
-        '8.8.8.8': { netname: 'EIGHT-NET', country: null },
+        '1.1.1.1': { netname: 'ONE-NET' },
+        '8.8.8.8': { netname: 'EIGHT-NET' },
       });
     });
 
@@ -85,7 +87,7 @@ describe('whois routes', () => {
     it('silently drops invalid hosts and de-duplicates repeats instead of failing the batch', async () => {
       const app = new Hono();
       const runWhoisFn = vi.fn().mockResolvedValue('netname: TEST\n');
-      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn, resolveHostFn: vi.fn() }));
+      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn }));
 
       const res = await app.request('/api/whois/bulk', {
         method: 'POST',
@@ -94,7 +96,7 @@ describe('whois routes', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual({ '1.1.1.1': { netname: 'TEST', country: null } });
+      expect(await res.json()).toEqual({ '1.1.1.1': { netname: 'TEST' } });
       expect(runWhoisFn).toHaveBeenCalledTimes(1);
     });
 
@@ -104,7 +106,7 @@ describe('whois routes', () => {
         if (host === '9.9.9.9') throw new Error('boom');
         return 'netname: TEST\n';
       });
-      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn, resolveHostFn: vi.fn() }));
+      registerWhoisRoutes(app, new WhoisService(db, { runWhoisFn }));
 
       const res = await app.request('/api/whois/bulk', {
         method: 'POST',
@@ -114,8 +116,8 @@ describe('whois routes', () => {
 
       expect(res.status).toBe(200);
       expect(await res.json()).toEqual({
-        '1.1.1.1': { netname: 'TEST', country: null },
-        '9.9.9.9': { netname: null, country: null },
+        '1.1.1.1': { netname: 'TEST' },
+        '9.9.9.9': { netname: null },
       });
     });
   });
