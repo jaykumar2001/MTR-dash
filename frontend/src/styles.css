@@ -662,6 +662,20 @@ main {
   color: var(--text-faint);
 }
 
+.hop-node-geo {
+  margin-top: 0.2rem;
+  font-family: var(--font-ui);
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hop-node.inactive .hop-node-geo {
+  color: var(--text-faint);
+}
+
 .hop-node-netname {
   margin-top: 0.2rem;
   font-family: var(--font-ui);

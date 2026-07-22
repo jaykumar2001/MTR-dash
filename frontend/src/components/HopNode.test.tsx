@@ -61,6 +61,21 @@ describe('HopNode', () => {
     expect(container.querySelector('.hop-node-hostname')).toBeNull();
   });
 
+  it('renders the city and country together when both are present', () => {
+    renderNode({ host: '192.168.1.1', ttl: 3, active: true, country: 'DE', city: 'Frankfurt' });
+    expect(screen.getByText('Frankfurt, DE')).toBeInTheDocument();
+  });
+
+  it('renders the city alone when country is absent', () => {
+    renderNode({ host: '192.168.1.1', ttl: 3, active: true, city: 'Frankfurt' });
+    expect(screen.getByText('Frankfurt')).toBeInTheDocument();
+  });
+
+  it('renders nothing extra when city is absent', () => {
+    const { container } = renderNode({ host: '192.168.1.1', ttl: 3, active: true });
+    expect(container.querySelector('.hop-node-geo')).toBeNull();
+  });
+
   it('renders a country flag when a recognized country code is present', () => {
     const { container } = renderNode({
       host: '192.168.1.1',
