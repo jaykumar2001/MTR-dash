@@ -88,4 +88,23 @@ describe('lookupCity', () => {
 
     expect(open).toHaveBeenCalledTimes(2);
   });
+
+  it('de-duplicates concurrent lookups against a cold cache into a single open() call', async () => {
+    fs.writeFileSync(dbPath, 'fake-mmdb-bytes');
+    let resolveOpen!: (reader: unknown) => void;
+    const openPromise = new Promise((resolve) => {
+      resolveOpen = resolve;
+    });
+    vi.mocked(open).mockReturnValue(openPromise as never);
+
+    const first = lookupCity(dbPath, '8.8.8.8');
+    const second = lookupCity(dbPath, '1.1.1.1');
+
+    resolveOpen({
+      get: vi.fn().mockReturnValue({ country: { iso_code: 'US' }, city: { names: { en: 'X' } } }),
+    });
+    await Promise.all([first, second]);
+
+    expect(open).toHaveBeenCalledTimes(1);
+  });
 });

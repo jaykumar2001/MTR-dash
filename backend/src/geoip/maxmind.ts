@@ -6,7 +6,7 @@ export interface GeoLookupResult {
   city: string | null;
 }
 
-let cachedReader: Reader<CityResponse> | null = null;
+let cachedReaderPromise: Promise<Reader<CityResponse> | null> | null = null;
 let cachedPath: string | null = null;
 let cachedMtimeMs = 0;
 
@@ -17,25 +17,26 @@ async function getReader(dbPath: string): Promise<Reader<CityResponse> | null> {
   } catch {
     return null;
   }
-  if (cachedReader && cachedPath === dbPath && cachedMtimeMs === stat.mtimeMs) {
-    return cachedReader;
+  if (cachedPath === dbPath && cachedMtimeMs === stat.mtimeMs && cachedReaderPromise) {
+    return cachedReaderPromise;
   }
-  try {
-    const reader = await open<CityResponse>(dbPath);
-    cachedReader = reader;
-    cachedPath = dbPath;
-    cachedMtimeMs = stat.mtimeMs;
-    return reader;
-  } catch {
-    return null;
-  }
+  // Set the cache fields synchronously, before awaiting `open()` — this is
+  // what lets a concurrent call that arrives before this promise settles
+  // see the cache as already populated and reuse this same promise instead
+  // of starting its own redundant open() of the same multi-MB file.
+  cachedPath = dbPath;
+  cachedMtimeMs = stat.mtimeMs;
+  cachedReaderPromise = open<CityResponse>(dbPath).catch(() => null);
+  return cachedReaderPromise;
 }
 
 /** Looks up country + city for an IP against a GeoLite2-City .mmdb file.
  * Returns null if the file doesn't exist, can't be opened, or has no
  * record for the IP — all of which mean "fall back to ipdeny," not an
  * error to surface. The opened reader is cached and only reopened when
- * the file's mtime advances (i.e. after a geoipupdate refresh). */
+ * the file's mtime advances (i.e. after a geoipupdate refresh); concurrent
+ * calls against a cold/stale cache share the same in-flight open() rather
+ * than each starting their own. */
 export async function lookupCity(dbPath: string, ip: string): Promise<GeoLookupResult | null> {
   const reader = await getReader(dbPath);
   if (!reader) return null;
@@ -49,7 +50,7 @@ export async function lookupCity(dbPath: string, ip: string): Promise<GeoLookupR
 
 /** Test-only: clears the module-level cached reader. */
 export function _resetMaxmindCacheForTests(): void {
-  cachedReader = null;
+  cachedReaderPromise = null;
   cachedPath = null;
   cachedMtimeMs = 0;
 }
