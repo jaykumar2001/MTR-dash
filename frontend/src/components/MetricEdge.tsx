@@ -7,6 +7,7 @@ export interface MetricEdgeData extends Record<string, unknown> {
   active: boolean;
   stale: boolean;
   dimmed: boolean;
+  highlighted: boolean;
 }
 
 /**
@@ -41,13 +42,23 @@ export function MetricEdge({
       path={edgePath}
       interactionWidth={20}
       style={{
+        // stroke/color (the loss-status signal) are never affected by
+        // `highlighted` — see this plan's Global Constraints.
         stroke: edgeData.color,
         // Lets the hover/selected glow (styles.css) pick up this edge's own
         // color via `currentColor`, so the halo always matches the link.
         color: edgeData.color,
-        strokeWidth: selected ? 4 : 3,
+        strokeWidth: edgeData.highlighted ? 5 : selected ? 4 : 3,
         strokeDasharray: edgeData.stale || !edgeData.active ? '6 4' : undefined,
         opacity: edgeData.dimmed ? 0.15 : 1,
+        // Inline `filter` takes precedence over styles.css's `:hover`/
+        // `.selected` currentColor glow rule for the specific edge under
+        // the cursor — intentional: it ends up with the same prominent
+        // accent glow as the rest of its highlighted route, not a dimmer
+        // self-only one.
+        filter: edgeData.highlighted
+          ? 'drop-shadow(0 0 3px var(--accent-strong)) drop-shadow(0 0 8px var(--accent))'
+          : undefined,
       }}
     />
   );
