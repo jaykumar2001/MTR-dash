@@ -39,6 +39,35 @@ const mapData: MapResult = {
   ],
 };
 
+const branchedMapData: MapResult = {
+  nodes: [
+    { id: 1, ttl: 1, host: 'active-1', active: true, x: 0, y: 0 },
+    { id: 2, ttl: 2, host: 'active-2', active: true, x: 220, y: 0 },
+    { id: 3, ttl: 1, host: 'stale-1', active: false, x: 0, y: 140 },
+  ],
+  edges: [
+    {
+      id: '0-1',
+      source: 0,
+      target: 1,
+      color: 'green',
+      stale: false,
+      avgLossPct: 0,
+      latest: { lossPct: 0, snt: 10, last: 1, avg: 1, best: 1, wrst: 1, stdev: 0 },
+    },
+    {
+      id: '1-2',
+      source: 1,
+      target: 2,
+      color: 'green',
+      stale: false,
+      avgLossPct: 0,
+      latest: { lossPct: 0, snt: 10, last: 1, avg: 1, best: 1, wrst: 1, stdev: 0 },
+    },
+    { id: '0-3', source: 0, target: 3, color: 'grey', stale: true },
+  ],
+};
+
 describe('NetworkMap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -439,6 +468,83 @@ describe('NetworkMap', () => {
     expect(nodeEl).toHaveClass('active');
     expect(nodeEl).toHaveClass('inferred');
     expect(nodeEl).not.toHaveClass('inactive');
+  });
+
+  describe('path hover highlighting', () => {
+    it('hovering an active node dims only the unrelated branch, leaving its own route (including forward continuation) undimmed', () => {
+      const { container } = render(<NetworkMap targetId={1} mapData={branchedMapData} />);
+      const hoveredEl = screen.getByText('active-1').closest('.react-flow__node') as HTMLElement;
+
+      fireEvent.mouseEnter(hoveredEl);
+
+      const sourceEl = screen.getByText('this host').closest('.hop-node');
+      const active1El = screen.getByText('active-1').closest('.hop-node');
+      const active2El = screen.getByText('active-2').closest('.hop-node');
+      const stale1El = screen.getByText('stale-1').closest('.hop-node');
+      expect(sourceEl).not.toHaveClass('dimmed');
+      expect(active1El).not.toHaveClass('dimmed');
+      expect(active2El).not.toHaveClass('dimmed');
+      expect(stale1El).toHaveClass('dimmed');
+
+      const paths = container.querySelectorAll('path.react-flow__edge-path');
+      expect(paths[0]).not.toHaveStyle({ opacity: '0.15' }); // 0-1
+      expect(paths[1]).not.toHaveStyle({ opacity: '0.15' }); // 1-2
+      expect(paths[2]).toHaveStyle({ opacity: '0.15' }); // 0-3 (stale branch)
+    });
+
+    it('hovering a stale node highlights its own historical branch, not the active chain', () => {
+      render(<NetworkMap targetId={1} mapData={branchedMapData} />);
+      const hoveredEl = screen.getByText('stale-1').closest('.react-flow__node') as HTMLElement;
+
+      fireEvent.mouseEnter(hoveredEl);
+
+      expect(screen.getByText('this host').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('stale-1').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('active-1').closest('.hop-node')).toHaveClass('dimmed');
+      expect(screen.getByText('active-2').closest('.hop-node')).toHaveClass('dimmed');
+    });
+
+    it('hovering an edge highlights the full route through both its endpoints', () => {
+      const { container } = render(<NetworkMap targetId={1} mapData={branchedMapData} />);
+      const paths = container.querySelectorAll('path.react-flow__edge-path');
+      // paths[1] is the 1-2 edge (active-1 -> active-2); hovering it should
+      // pull in the source and active-1 too, via the endpoint traversal.
+      fireEvent.mouseEnter(paths[1]);
+
+      expect(screen.getByText('this host').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('active-1').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('active-2').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('stale-1').closest('.hop-node')).toHaveClass('dimmed');
+    });
+
+    it('clears all dimming on mouse leave', () => {
+      render(<NetworkMap targetId={1} mapData={branchedMapData} />);
+      const hoveredEl = screen.getByText('active-1').closest('.react-flow__node') as HTMLElement;
+
+      fireEvent.mouseEnter(hoveredEl);
+      expect(screen.getByText('stale-1').closest('.hop-node')).toHaveClass('dimmed');
+
+      fireEvent.mouseLeave(hoveredEl);
+      expect(screen.getByText('stale-1').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('active-1').closest('.hop-node')).not.toHaveClass('dimmed');
+    });
+
+    it('hovering the origin node highlights the entire map', () => {
+      render(<NetworkMap targetId={1} mapData={branchedMapData} />);
+      const sourceEl = screen.getByText('this host').closest('.react-flow__node') as HTMLElement;
+
+      fireEvent.mouseEnter(sourceEl);
+
+      expect(screen.getByText('active-1').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('active-2').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('stale-1').closest('.hop-node')).not.toHaveClass('dimmed');
+    });
+
+    it('does not dim anything when nothing is hovered', () => {
+      render(<NetworkMap targetId={1} mapData={branchedMapData} />);
+      expect(screen.getByText('active-1').closest('.hop-node')).not.toHaveClass('dimmed');
+      expect(screen.getByText('stale-1').closest('.hop-node')).not.toHaveClass('dimmed');
+    });
   });
 });
 
