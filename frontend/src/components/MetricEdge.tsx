@@ -6,6 +6,7 @@ export interface MetricEdgeData extends Record<string, unknown> {
   latest?: EdgeMetrics;
   active: boolean;
   stale: boolean;
+  dimmed: boolean;
 }
 
 /**
@@ -46,6 +47,7 @@ export function MetricEdge({
         color: edgeData.color,
         strokeWidth: selected ? 4 : 3,
         strokeDasharray: edgeData.stale || !edgeData.active ? '6 4' : undefined,
+        opacity: edgeData.dimmed ? 0.15 : 1,
       }}
     />
   );

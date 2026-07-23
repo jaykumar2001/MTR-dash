@@ -76,4 +76,28 @@ describe('MetricEdge', () => {
     const path = container.querySelector('path.react-flow__edge-path');
     expect(path).toHaveStyle({ strokeWidth: '4' });
   });
+
+  it('reduces opacity when dimmed', () => {
+    const { container } = render(
+      <ReactFlowProvider>
+        <svg>
+          <MetricEdge {...baseProps} data={{ ...baseProps.data, dimmed: true }} />
+        </svg>
+      </ReactFlowProvider>,
+    );
+    const path = container.querySelector('path.react-flow__edge-path');
+    expect(path).toHaveStyle({ opacity: '0.15' });
+  });
+
+  it('renders full opacity when not dimmed', () => {
+    const { container } = render(
+      <ReactFlowProvider>
+        <svg>
+          <MetricEdge {...baseProps} data={{ ...baseProps.data, dimmed: false }} />
+        </svg>
+      </ReactFlowProvider>,
+    );
+    const path = container.querySelector('path.react-flow__edge-path');
+    expect(path).toHaveStyle({ opacity: '1' });
+  });
 });
