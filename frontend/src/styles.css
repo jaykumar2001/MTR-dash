@@ -604,6 +604,14 @@ main {
     var(--shadow-panel);
 }
 
+.hop-node.path-highlighted {
+  opacity: 1;
+  border-color: var(--accent-strong);
+  box-shadow:
+    0 0 0 2px var(--accent) inset,
+    0 0 16px 2px var(--accent);
+}
+
 .hop-node.origin .hop-node-ttl {
   color: var(--accent-strong);
 }

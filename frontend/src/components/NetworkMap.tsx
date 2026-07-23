@@ -526,6 +526,7 @@ export function NetworkMap({ targetId, mapData, historyActive }: NetworkMapProps
         data: {
           ...node.data,
           dimmed: pathHighlight !== null && !pathHighlight.nodeIds.has(node.id),
+          highlighted: pathHighlight !== null && pathHighlight.nodeIds.has(node.id),
         },
       })),
     [nodes, pathHighlight],
@@ -538,6 +539,7 @@ export function NetworkMap({ targetId, mapData, historyActive }: NetworkMapProps
         data: {
           ...edge.data,
           dimmed: pathHighlight !== null && !pathHighlight.edgeIds.has(edge.id),
+          highlighted: pathHighlight !== null && pathHighlight.edgeIds.has(edge.id),
         },
       })),
     [edges, pathHighlight],

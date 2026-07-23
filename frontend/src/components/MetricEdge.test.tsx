@@ -17,6 +17,8 @@ const baseProps = {
     color: 'yellow' as const,
     active: true,
     stale: false,
+    dimmed: false,
+    highlighted: false,
     latest: { lossPct: 2, snt: 10, last: 1, avg: 1.2, best: 1, wrst: 1.5, stdev: 0.1 },
   },
 };
@@ -99,5 +101,42 @@ describe('MetricEdge', () => {
     );
     const path = container.querySelector('path.react-flow__edge-path');
     expect(path).toHaveStyle({ opacity: '1' });
+  });
+
+  it('increases stroke width and adds an accent glow when highlighted', () => {
+    const { container } = render(
+      <ReactFlowProvider>
+        <svg>
+          <MetricEdge {...baseProps} data={{ ...baseProps.data, dimmed: false, highlighted: true }} />
+        </svg>
+      </ReactFlowProvider>,
+    );
+    const path = container.querySelector('path.react-flow__edge-path');
+    expect(path).toHaveStyle({ strokeWidth: '5' });
+    expect(path?.getAttribute('style')).toMatch(/drop-shadow/);
+  });
+
+  it('keeps the loss-status stroke color unchanged when highlighted', () => {
+    const { container } = render(
+      <ReactFlowProvider>
+        <svg>
+          <MetricEdge {...baseProps} data={{ ...baseProps.data, dimmed: false, highlighted: true }} />
+        </svg>
+      </ReactFlowProvider>,
+    );
+    const path = container.querySelector('path.react-flow__edge-path');
+    expect(path).toHaveStyle({ stroke: 'yellow' });
+  });
+
+  it('applies no glow filter when not highlighted', () => {
+    const { container } = render(
+      <ReactFlowProvider>
+        <svg>
+          <MetricEdge {...baseProps} data={{ ...baseProps.data, dimmed: false, highlighted: false }} />
+        </svg>
+      </ReactFlowProvider>,
+    );
+    const path = container.querySelector('path.react-flow__edge-path');
+    expect(path?.getAttribute('style')).not.toMatch(/drop-shadow/);
   });
 });

@@ -111,4 +111,19 @@ describe('HopNode', () => {
     const { container } = renderNode({ host: '192.168.1.1', ttl: 3, active: true });
     expect(container.querySelector('.hop-node.dimmed')).toBeNull();
   });
+
+  it('applies the path-highlighted class when highlighted is true', () => {
+    const { container } = renderNode({
+      host: '192.168.1.1',
+      ttl: 3,
+      active: true,
+      highlighted: true,
+    });
+    expect(container.querySelector('.hop-node.path-highlighted')).not.toBeNull();
+  });
+
+  it('does not apply the path-highlighted class when highlighted is false or absent', () => {
+    const { container } = renderNode({ host: '192.168.1.1', ttl: 3, active: true });
+    expect(container.querySelector('.hop-node.path-highlighted')).toBeNull();
+  });
 });
