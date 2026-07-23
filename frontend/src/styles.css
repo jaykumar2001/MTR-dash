@@ -560,6 +560,7 @@ main {
     0 1px 0 rgba(255, 255, 255, 0.03) inset,
     var(--shadow-panel);
   animation: jack-power-on var(--motion-med) ease both;
+  transition: opacity var(--motion-med) ease;
   cursor: pointer;
 }
 
@@ -586,6 +587,10 @@ main {
   opacity: 0.5;
   border-style: dashed;
   background: linear-gradient(180deg, var(--surface), var(--surface-inset));
+}
+
+.hop-node.dimmed {
+  opacity: 0.2;
 }
 
 .hop-node.inferred {

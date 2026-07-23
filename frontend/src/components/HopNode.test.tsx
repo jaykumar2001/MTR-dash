@@ -101,4 +101,14 @@ describe('HopNode', () => {
     });
     expect(container.querySelector('.hop-node-flag')).toBeNull();
   });
+
+  it('applies the dimmed class when dimmed is true', () => {
+    const { container } = renderNode({ host: '192.168.1.1', ttl: 3, active: true, dimmed: true });
+    expect(container.querySelector('.hop-node.dimmed')).not.toBeNull();
+  });
+
+  it('does not apply the dimmed class when dimmed is false or absent', () => {
+    const { container } = renderNode({ host: '192.168.1.1', ttl: 3, active: true });
+    expect(container.querySelector('.hop-node.dimmed')).toBeNull();
+  });
 });

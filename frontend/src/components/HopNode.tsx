@@ -11,6 +11,7 @@ export interface HopNodeData extends Record<string, unknown> {
   city?: string | null;
   resolvedHost?: string | null;
   inferred?: boolean;
+  dimmed?: boolean;
 }
 
 // `Flags` exports one component per ISO 3166-1 alpha-2 code (e.g. `Flags.US`);
@@ -19,14 +20,14 @@ export interface HopNodeData extends Record<string, unknown> {
 const FlagComponents = Flags as unknown as Record<string, React.ComponentType>;
 
 export function HopNode({ data }: NodeProps) {
-  const { host, ttl, active, netname, country, city, resolvedHost, inferred } =
+  const { host, ttl, active, netname, country, city, resolvedHost, inferred, dimmed } =
     data as HopNodeData;
   const isOrigin = ttl === 0;
   const FlagIcon = country ? FlagComponents[country] : undefined;
 
   return (
     <div
-      className={`hop-node ${active ? 'active' : 'inactive'}${isOrigin ? ' origin' : ''}${inferred ? ' inferred' : ''}`}
+      className={`hop-node ${active ? 'active' : 'inactive'}${isOrigin ? ' origin' : ''}${inferred ? ' inferred' : ''}${dimmed ? ' dimmed' : ''}`}
       title={inferred ? 'Inferred from an earlier resolved path — not observed responding in this poll' : ''}
     >
       <Handle type="target" position={Position.Left} />

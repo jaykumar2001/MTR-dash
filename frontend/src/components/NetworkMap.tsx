@@ -404,6 +404,145 @@ export function NetworkMap({ targetId, mapData, historyActive }: NetworkMapProps
     [popup],
   );
 
+  // Hover state driving path-wide highlighting (see pathHighlight below).
+  // Deliberately a single `{kind, id} | null` rather than separate
+  // node/edge fields — only one element can be hovered at a time, and this
+  // shape makes "nothing is hovered" a single, unambiguous `null` check.
+  const [hoveredElement, setHoveredElement] = useState<
+    { kind: 'node' | 'edge'; id: string } | null
+  >(null);
+
+  const handleNodeMouseEnter = useCallback((_event: React.MouseEvent, node: Node) => {
+    setHoveredElement({ kind: 'node', id: node.id });
+  }, []);
+
+  // Guarded the same way handleNodeClick/handleEdgeClick already guard
+  // against stale state: only clear if the element being left is still the
+  // one currently tracked as hovered, so a fast pointer move from node A
+  // straight onto node B can never have A's leave event clear B's just-set
+  // hover.
+  const handleNodeMouseLeave = useCallback((_event: React.MouseEvent, node: Node) => {
+    setHoveredElement((current) =>
+      current?.kind === 'node' && current.id === node.id ? null : current,
+    );
+  }, []);
+
+  const handleEdgeMouseEnter = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    setHoveredElement({ kind: 'edge', id: edge.id });
+  }, []);
+
+  const handleEdgeMouseLeave = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    setHoveredElement((current) =>
+      current?.kind === 'edge' && current.id === edge.id ? null : current,
+    );
+  }, []);
+
+  // Two DIRECTIONAL walks over the currently-rendered edge graph, not one
+  // undirected BFS: the graph is fully connected (every hop traces back to
+  // the same origin), so a plain "visit any neighbor, either direction"
+  // flood-fill from any starting point always reaches every node on the
+  // map, regardless of which element was hovered — it can never dim
+  // anything. Walking ancestors and descendants as two separate passes,
+  // each following only its own direction, is what actually confines the
+  // highlight to the hovered element's own route instead of leaking into
+  // unrelated sibling branches (e.g. a stale connector hanging off the
+  // same ancestor as the active chain).
+  //
+  // - Ancestors: from the start point, repeatedly take the edge(s) whose
+  //   TARGET is the current node, moving to their SOURCE. Never explores
+  //   an ancestor's other children — only the single path upward.
+  // - Descendants: from the start point, repeatedly take the edge(s) whose
+  //   SOURCE is the current node, moving to their TARGET. A node can have
+  //   more than one outgoing edge (a shared historical neighbor for
+  //   multiple since-diverged stale segments) — every branch downward from
+  //   the hovered element is included, which is intentional.
+  //
+  // For a hovered NODE, both walks start at that node. For a hovered EDGE,
+  // the ancestor walk starts at its `source` endpoint and the descendant
+  // walk starts at its `target` endpoint — never both directions from both
+  // endpoints, which would (again) leak into the source endpoint's other
+  // children.
+  const pathHighlight = useMemo(() => {
+    if (!hoveredElement) return null;
+
+    const nodeIds = new Set<string>();
+    const edgeIds = new Set<string>();
+    let ancestorStart: string;
+    let descendantStart: string;
+
+    if (hoveredElement.kind === 'node') {
+      ancestorStart = hoveredElement.id;
+      descendantStart = hoveredElement.id;
+      nodeIds.add(hoveredElement.id);
+    } else {
+      const edge = edges.find((e) => e.id === hoveredElement.id);
+      if (!edge) return null;
+      ancestorStart = edge.source;
+      descendantStart = edge.target;
+      nodeIds.add(edge.source);
+      nodeIds.add(edge.target);
+      edgeIds.add(edge.id);
+    }
+
+    const ancestorQueue = [ancestorStart];
+    while (ancestorQueue.length > 0) {
+      const current = ancestorQueue.shift() as string;
+      for (const edge of edges) {
+        if (edge.target !== current) continue;
+        edgeIds.add(edge.id);
+        if (!nodeIds.has(edge.source)) {
+          nodeIds.add(edge.source);
+          ancestorQueue.push(edge.source);
+        }
+      }
+    }
+
+    const descendantQueue = [descendantStart];
+    while (descendantQueue.length > 0) {
+      const current = descendantQueue.shift() as string;
+      for (const edge of edges) {
+        if (edge.source !== current) continue;
+        edgeIds.add(edge.id);
+        if (!nodeIds.has(edge.target)) {
+          nodeIds.add(edge.target);
+          descendantQueue.push(edge.target);
+        }
+      }
+    }
+
+    return { nodeIds, edgeIds };
+  }, [hoveredElement, edges]);
+
+  // Render-time-only layer, same reasoning as displayNodes above: adding
+  // `dimmed` here (rather than into the `nodes`/`edges` state itself) means
+  // a hover — which fires far more often than a click — never touches the
+  // position/selection-carrying state or retriggers the effects keyed on
+  // it. `renderedNodes`/`renderedEdges`, not `nodes`/`edges`, are what
+  // actually get passed to <ReactFlow>.
+  const renderedNodes = useMemo<Node[]>(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          dimmed: pathHighlight !== null && !pathHighlight.nodeIds.has(node.id),
+        },
+      })),
+    [nodes, pathHighlight],
+  );
+
+  const renderedEdges = useMemo<Edge[]>(
+    () =>
+      edges.map((edge) => ({
+        ...edge,
+        data: {
+          ...edge.data,
+          dimmed: pathHighlight !== null && !pathHighlight.edgeIds.has(edge.id),
+        },
+      })),
+    [edges, pathHighlight],
+  );
+
   const dismissPopup = useCallback(() => setPopup(null), []);
 
   // `fitView()` (called both on mount and by FitViewOnChange) moves the
@@ -440,8 +579,8 @@ export function NetworkMap({ targetId, mapData, historyActive }: NetworkMapProps
   return (
     <div className="network-map">
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
+        nodes={renderedNodes}
+        edges={renderedEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
@@ -449,6 +588,10 @@ export function NetworkMap({ targetId, mapData, historyActive }: NetworkMapProps
         onNodeDragStop={handleNodeDragStop}
         onEdgeClick={handleEdgeClick}
         onNodeClick={handleNodeClick}
+        onNodeMouseEnter={handleNodeMouseEnter}
+        onNodeMouseLeave={handleNodeMouseLeave}
+        onEdgeMouseEnter={handleEdgeMouseEnter}
+        onEdgeMouseLeave={handleEdgeMouseLeave}
         onPaneClick={dismissPopup}
         onMoveStart={handleMoveStart}
         onMoveEnd={handleMoveEnd}

@@ -485,38 +485,75 @@ line before `const dismissPopup = useCallback(...)`):
     );
   }, []);
 
-  // Bidirectional BFS over the currently-rendered edge graph, starting from
-  // the hovered node (or both endpoints of a hovered edge): collects every
-  // node/edge on the complete connected route through the hovered element,
-  // walking both stale and live edges in both directions. No assumption
-  // about graph shape — a shared historical neighbor can have more than one
-  // outgoing edge (two different past deviations sharing one predecessor);
-  // that's fine, all branches from it get highlighted too.
+  // Two DIRECTIONAL walks over the currently-rendered edge graph, not one
+  // undirected BFS: the graph is fully connected (every hop traces back to
+  // the same origin), so a plain "visit any neighbor, either direction"
+  // flood-fill from any starting point always reaches every node on the
+  // map, regardless of which element was hovered — it can never dim
+  // anything. Walking ancestors and descendants as two separate passes,
+  // each following only its own direction, is what actually confines the
+  // highlight to the hovered element's own route instead of leaking into
+  // unrelated sibling branches (e.g. a stale connector hanging off the
+  // same ancestor as the active chain).
+  //
+  // - Ancestors: from the start point, repeatedly take the edge(s) whose
+  //   TARGET is the current node, moving to their SOURCE. Never explores
+  //   an ancestor's other children — only the single path upward.
+  // - Descendants: from the start point, repeatedly take the edge(s) whose
+  //   SOURCE is the current node, moving to their TARGET. A node can have
+  //   more than one outgoing edge (a shared historical neighbor for
+  //   multiple since-diverged stale segments) — every branch downward from
+  //   the hovered element is included, which is intentional.
+  //
+  // For a hovered NODE, both walks start at that node. For a hovered EDGE,
+  // the ancestor walk starts at its `source` endpoint and the descendant
+  // walk starts at its `target` endpoint — never both directions from both
+  // endpoints, which would (again) leak into the source endpoint's other
+  // children.
   const pathHighlight = useMemo(() => {
     if (!hoveredElement) return null;
 
-    const startIds: string[] =
-      hoveredElement.kind === 'node'
-        ? [hoveredElement.id]
-        : (() => {
-            const edge = edges.find((e) => e.id === hoveredElement.id);
-            return edge ? [edge.source, edge.target] : [];
-          })();
-    if (startIds.length === 0) return null;
-
-    const nodeIds = new Set<string>(startIds);
+    const nodeIds = new Set<string>();
     const edgeIds = new Set<string>();
-    const queue = [...startIds];
+    let ancestorStart: string;
+    let descendantStart: string;
 
-    while (queue.length > 0) {
-      const current = queue.shift() as string;
+    if (hoveredElement.kind === 'node') {
+      ancestorStart = hoveredElement.id;
+      descendantStart = hoveredElement.id;
+      nodeIds.add(hoveredElement.id);
+    } else {
+      const edge = edges.find((e) => e.id === hoveredElement.id);
+      if (!edge) return null;
+      ancestorStart = edge.source;
+      descendantStart = edge.target;
+      nodeIds.add(edge.source);
+      nodeIds.add(edge.target);
+      edgeIds.add(edge.id);
+    }
+
+    const ancestorQueue = [ancestorStart];
+    while (ancestorQueue.length > 0) {
+      const current = ancestorQueue.shift() as string;
       for (const edge of edges) {
-        if (edge.source !== current && edge.target !== current) continue;
+        if (edge.target !== current) continue;
         edgeIds.add(edge.id);
-        const other = edge.source === current ? edge.target : edge.source;
-        if (!nodeIds.has(other)) {
-          nodeIds.add(other);
-          queue.push(other);
+        if (!nodeIds.has(edge.source)) {
+          nodeIds.add(edge.source);
+          ancestorQueue.push(edge.source);
+        }
+      }
+    }
+
+    const descendantQueue = [descendantStart];
+    while (descendantQueue.length > 0) {
+      const current = descendantQueue.shift() as string;
+      for (const edge of edges) {
+        if (edge.source !== current) continue;
+        edgeIds.add(edge.id);
+        if (!nodeIds.has(edge.target)) {
+          nodeIds.add(edge.target);
+          descendantQueue.push(edge.target);
         }
       }
     }

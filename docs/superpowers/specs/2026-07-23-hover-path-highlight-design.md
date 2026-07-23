@@ -30,23 +30,44 @@ one-directional one.
 
 ## Path computation
 
-Given the hovered element (a node id, or an edge's `source`+`target` node
-ids as two starting points), run a bidirectional BFS over the *currently
-rendered* `edges` array (both `stale: true` and `stale: false` edges,
-undirected — walk both into a node via its incoming edge and out via any
-outgoing edges): collect every node id and edge id reached. This is the
-highlighted set.
+Given the hovered element, walk the *currently rendered* `edges` array
+(both `stale: true` and `stale: false` edges) in two separate DIRECTIONAL
+passes, not one undirected traversal — the map is a single connected graph
+(every hop traces back to one origin), so an undirected flood-fill from any
+starting point always reaches every node regardless of what was hovered,
+which would never dim anything:
+
+- **Ancestors**: from the start point, repeatedly follow the edge(s) whose
+  *target* is the current node to their *source*, moving toward the
+  origin. Never explores an ancestor's other children — only the single
+  path upward, so a hover never leaks into a sibling branch that happens
+  to share an ancestor.
+- **Descendants**: from the start point, repeatedly follow the edge(s)
+  whose *source* is the current node to their *target*, moving away from
+  the origin. A node can have more than one outgoing edge (a shared
+  historical neighbor for multiple since-diverged stale segments) — every
+  branch downward from the hovered element is included, intentionally.
+
+For a hovered node, both walks start at that node. For a hovered edge, the
+ancestor walk starts at its `source` endpoint and the descendant walk
+starts at its `target` endpoint (not both directions from both endpoints,
+which would reintroduce the same sibling-branch leak on the edge's source
+side). The highlighted set is the union of both walks' visited nodes/edges
+plus the hovered element itself.
 
 - Hovering the synthetic origin node (id `'source'`, labeled "this host")
-  highlights the entire map, since every edge traces back to it. This is
+  highlights the entire map: it has no ancestors, and its descendant walk
+  reaches everything downstream of it, which is everything. This is
   correct, not a bug to guard against.
 - A node that is the shared historical neighbor for more than one
   since-diverged stale segment (rare — bounded by `maxStaleHops`, 0–5) has
-  more than one outgoing edge; hovering it highlights all of them. Also
-  correct — it genuinely is common history for multiple observed routes.
-- No graph-shape assumptions (e.g. "each node has exactly one parent") are
-  required or relied upon; the BFS handles whatever shape `MapService`
-  produced.
+  more than one outgoing edge; hovering it highlights all of them via the
+  descendant walk's branching. Also correct — it genuinely is common
+  history for multiple observed routes.
+- No graph-shape assumptions beyond "each node has at most one incoming
+  edge in practice" are required for correctness — even if that assumption
+  were violated, the ancestor walk would just visit multiple parents
+  rather than break.
 
 ## Changes by layer
 
@@ -101,7 +122,7 @@ needs.
 
 ### `frontend/src/styles.css`
 
-- `.hop-node.dimmed { opacity: 0.25; }` — placed near the existing
+- `.hop-node.dimmed { opacity: 0.2; }` — placed near the existing
   `active`/`inactive` hop-node rules. A CSS `transition` on `opacity`
   (matching the existing `transition: stroke var(--motion-med) ease` on
   edge paths) so the dim/undim isn't an abrupt cut.
