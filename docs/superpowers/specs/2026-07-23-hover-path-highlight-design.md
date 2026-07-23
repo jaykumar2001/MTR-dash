@@ -122,7 +122,7 @@ needs.
 
 ### `frontend/src/styles.css`
 
-- `.hop-node.dimmed { opacity: 0.25; }` — placed near the existing
+- `.hop-node.dimmed { opacity: 0.2; }` — placed near the existing
   `active`/`inactive` hop-node rules. A CSS `transition` on `opacity`
   (matching the existing `transition: stroke var(--motion-med) ease` on
   edge paths) so the dim/undim isn't an abrupt cut.
