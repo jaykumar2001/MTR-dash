@@ -164,6 +164,13 @@ custom properties (`var(--bg)`, etc.) rather than hardcoded values. Loss-status 
 (green/yellow/red) are deliberately excluded from theme overrides — they're a fixed signal, not a
 palette choice.
 
+## Development workflow
+
+When executing an implementation plan (via the `writing-plans`/`subagent-driven-development`
+skills) in this repo, always use **Subagent-Driven** execution — a fresh subagent per task,
+reviewed between tasks — rather than inline execution in the main session. Don't ask which
+approach to use; default to Subagent-Driven without prompting.
+
 ### Scope constraint
 
 This is built for a self-hosted, LAN-trusted environment: there is intentionally no
