@@ -471,7 +471,7 @@ describe('NetworkMap', () => {
   });
 
   describe('path hover highlighting', () => {
-    it('hovering an active node dims only the unrelated branch, leaving its own route (including forward continuation) undimmed', () => {
+    it('hovering an active node dims only the unrelated branch, leaving its own route (including forward continuation) undimmed and highlighted', () => {
       const { container } = render(<NetworkMap targetId={1} mapData={branchedMapData} />);
       const hoveredEl = screen.getByText('active-1').closest('.react-flow__node') as HTMLElement;
 
@@ -485,11 +485,18 @@ describe('NetworkMap', () => {
       expect(active1El).not.toHaveClass('dimmed');
       expect(active2El).not.toHaveClass('dimmed');
       expect(stale1El).toHaveClass('dimmed');
+      expect(sourceEl).toHaveClass('path-highlighted');
+      expect(active1El).toHaveClass('path-highlighted');
+      expect(active2El).toHaveClass('path-highlighted');
+      expect(stale1El).not.toHaveClass('path-highlighted');
 
       const paths = container.querySelectorAll('path.react-flow__edge-path');
       expect(paths[0]).not.toHaveStyle({ opacity: '0.15' }); // 0-1
       expect(paths[1]).not.toHaveStyle({ opacity: '0.15' }); // 1-2
       expect(paths[2]).toHaveStyle({ opacity: '0.15' }); // 0-3 (stale branch)
+      expect(paths[0]).toHaveStyle({ strokeWidth: '5' }); // 0-1, highlighted
+      expect(paths[1]).toHaveStyle({ strokeWidth: '5' }); // 1-2, highlighted
+      expect(paths[2]).not.toHaveStyle({ strokeWidth: '5' }); // 0-3, not highlighted
     });
 
     it('hovering a stale node highlights its own historical branch, not the active chain', () => {
@@ -515,6 +522,10 @@ describe('NetworkMap', () => {
       expect(screen.getByText('active-1').closest('.hop-node')).not.toHaveClass('dimmed');
       expect(screen.getByText('active-2').closest('.hop-node')).not.toHaveClass('dimmed');
       expect(screen.getByText('stale-1').closest('.hop-node')).toHaveClass('dimmed');
+      expect(screen.getByText('this host').closest('.hop-node')).toHaveClass('path-highlighted');
+      expect(screen.getByText('active-1').closest('.hop-node')).toHaveClass('path-highlighted');
+      expect(screen.getByText('active-2').closest('.hop-node')).toHaveClass('path-highlighted');
+      expect(screen.getByText('stale-1').closest('.hop-node')).not.toHaveClass('path-highlighted');
     });
 
     it('clears all dimming on mouse leave', () => {
